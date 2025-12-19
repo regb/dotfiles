@@ -10,4 +10,4 @@ Then set up symlinks from expected config locations towards the right folder or 
 E.g, assuming clone in `~/vcs/dotfiles`:
 
 
-    ln -s ~/vcs/dotfiles/.config/nvim ~/.config/nvim
+    ln -s ~/vcs/dotfiles/nvim ~/.config/nvim
