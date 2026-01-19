@@ -1,0 +1,16 @@
+*.swp
+setup-env.sh
+
+bazel-*
+
+tmux-dev-session.sh
+
+local.env
+dev.env
+qa.env
+staging.env
+prod.env
+
+.envrc
+
+.regb.opencode

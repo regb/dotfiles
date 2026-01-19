@@ -1,1 +1,10 @@
 nvim/lazy-lock.json
+
+opencode/node_modules
+opencode/package.json
+opencode/bun.lock
+opencode/.gitignore
+opencode-nf/node_modules
+opencode-nf/package.json
+opencode-nf/bun.lock
+opencode-nf/.gitignore

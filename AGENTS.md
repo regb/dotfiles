@@ -5,3 +5,7 @@ This contains my main personal dotfiles. These are symlinked from the expected s
 ## NeoVim
 
 Neovim config is in `nvim/`.
+
+## Opencode
+
+In `opencode/`, it should be symlinked directly for ~/.config/opencode
