@@ -53,3 +53,16 @@ Then custom opencode configs can be symlinked to that path:
 I maintained my global `.gitignore`:
 
     ln -s ~/.dotfiles/git/.gitignore ~/.gitignore 
+
+## PI agent
+
+PI has runtime data in `~/.pi` (sessions, auth, etc), so only stable config files are
+symlinked from this repo.
+
+`settings.json` is intentionally not symlinked because PI updates dynamic fields in it
+(for example `lastChangelogVersion`):
+
+    mkdir -p ~/.pi/agent
+    ln -sf ~/.dotfiles/pi/agent/keybindings.json ~/.pi/agent/keybindings.json
+    ln -sfn ~/.dotfiles/pi/agent/prompts ~/.pi/agent/prompts
+    ln -sfn ~/.dotfiles/pi/agent/extensions ~/.pi/agent/extensions

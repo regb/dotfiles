@@ -1,0 +1,12 @@
+{
+  "tui.input.newLine": ["ctrl+j", "shift+enter"],
+  "app.message.followUp": ["ctrl+f", "ctrl+enter", "alt+enter"],
+  "app.tree.foldOrUp": ["h"],
+  "app.tree.unfoldOrDown": ["l"],
+  "tui.select.up": ["k"],
+  "tui.select.down": ["j"],
+  "tui.select.pageUp": ["ctrl+u"],
+  "tui.select.pageDown": ["ctrl+d"],
+  "tui.editor.pageUp": ["ctrl+u"],
+  "tui.editor.pageDown": ["ctrl+d"]
+}
