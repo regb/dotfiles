@@ -1,12 +1,15 @@
 {
   "tui.input.newLine": ["ctrl+j", "shift+enter"],
   "app.message.followUp": ["ctrl+f", "ctrl+enter", "alt+enter"],
-  "app.tree.foldOrUp": ["h"],
-  "app.tree.unfoldOrDown": ["l"],
-  "tui.select.up": ["k"],
-  "tui.select.down": ["j"],
+  "tui.select.up": ["up", "ctrl+p"],
+  "tui.select.down": ["down", "ctrl+n"],
   "tui.select.pageUp": ["ctrl+u"],
   "tui.select.pageDown": ["ctrl+d"],
   "tui.editor.pageUp": ["ctrl+u"],
-  "tui.editor.pageDown": ["ctrl+d"]
+  "tui.editor.pageDown": ["ctrl+d"],
+  "app.model.cycleForward": ["alt+m"],
+  "app.model.cycleBackward": ["shift+alt+m"],
+  "app.session.togglePath": ["alt+p"],
+  "app.session.toggleNamedFilter": ["alt+n"],
+  "app.models.toggleProvider": ["alt+v"]
 }

@@ -8,3 +8,5 @@ opencode-nf/node_modules
 opencode-nf/package.json
 opencode-nf/bun.lock
 opencode-nf/.gitignore
+
+node_modules
