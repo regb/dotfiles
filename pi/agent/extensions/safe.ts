@@ -2,8 +2,35 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import os from "node:os";
 import path from "node:path";
 
-const ALLOW_DENY_CHOICES = ["Allow", "Deny"];
+const ALLOW_DENY_CHOICES = ["Allow", "Deny", "Reject with feedback"] as const;
 const STATIC_ALLOWED_READ_ROOTS = [path.join(os.homedir(), ".pi")];
+
+type PermissionChoice = (typeof ALLOW_DENY_CHOICES)[number];
+
+async function requestPermissionOrFeedback(
+  ctx: any,
+  prompt: string,
+  deniedReasonPrefix: string,
+): Promise<{ allow: true } | { allow: false; reason: string }> {
+  const choice = (await ctx.ui.select(prompt, [...ALLOW_DENY_CHOICES])) as PermissionChoice | undefined;
+
+  if (choice === "Allow") return { allow: true };
+
+  if (choice === "Reject with feedback") {
+    const feedback = (await ctx.ui.input("Reject with feedback:", "e.g. use a safer/smaller command"))?.trim();
+    if (feedback) {
+      return {
+        allow: false,
+        reason:
+          `${deniedReasonPrefix}. Rejection context: \`${deniedReasonPrefix}\`. User feedback: \`${feedback}\`.\n` +
+          "Assess the feedback and do one of the following: (1) answer the feedback directly if no tool is needed, or (2) immediately rerun an adapted tool call that satisfies the feedback, unless impossible or unsafe.",
+      };
+    }
+    return { allow: false, reason: `${deniedReasonPrefix}: denied by user (no feedback provided)` };
+  }
+
+  return { allow: false, reason: `${deniedReasonPrefix}: denied by user` };
+}
 
 const isBlacklistedEnvPath = (filePath: string) => {
   const base = path.basename(filePath);
@@ -32,11 +59,12 @@ async function handleReadTool(event: { input: { path?: string } }, ctx: any) {
     return { block: true, reason: "Blocked read outside allowlist: no UI available for approval" };
   }
 
-  const choice = await ctx.ui.select(
+  const decision = await requestPermissionOrFeedback(
+    ctx,
     `Pi wants to read outside allowlist:\n${absReadPath}\n\nAllowed roots:\n- ${allowedRoots.join("\n- ")}`,
-    ALLOW_DENY_CHOICES,
+    "Blocked read outside allowlist",
   );
-  if (choice !== "Allow") return { block: true, reason: "Blocked read outside allowlist: denied by user" };
+  if (!decision.allow) return { block: true, reason: decision.reason };
 }
 
 function handleGrepTool() {
@@ -57,8 +85,12 @@ async function handleEditTool(event: { input: { path?: string }; toolName: strin
   }
 
   const target = String(event.input.path ?? "<unknown file>");
-  const choice = await ctx.ui.select(`Pi wants to edit ${target}?`, ALLOW_DENY_CHOICES);
-  if (choice !== "Allow") return { block: true, reason: `Blocked ${event.toolName}: denied by user` };
+  const decision = await requestPermissionOrFeedback(
+    ctx,
+    `Pi wants to edit ${target}?`,
+    `Blocked ${event.toolName}`,
+  );
+  if (!decision.allow) return { block: true, reason: decision.reason };
 }
 
 async function handleWriteTool(event: { input: { path?: string }; toolName: string }, ctx: any) {
@@ -67,8 +99,12 @@ async function handleWriteTool(event: { input: { path?: string }; toolName: stri
   }
 
   const target = String(event.input.path ?? "<unknown file>");
-  const choice = await ctx.ui.select(`Pi wants to write ${target}?`, ALLOW_DENY_CHOICES);
-  if (choice !== "Allow") return { block: true, reason: `Blocked ${event.toolName}: denied by user` };
+  const decision = await requestPermissionOrFeedback(
+    ctx,
+    `Pi wants to write ${target}?`,
+    `Blocked ${event.toolName}`,
+  );
+  if (!decision.allow) return { block: true, reason: decision.reason };
 }
 
 async function handleBashTool(event: { toolName: string; input: unknown }, ctx: any) {
@@ -77,8 +113,12 @@ async function handleBashTool(event: { toolName: string; input: unknown }, ctx: 
   }
 
   const command = String((event.input as { command?: string }).command ?? "<unknown command>");
-  const choice = await ctx.ui.select(`Pi wants to run:\n$ ${command}`, ALLOW_DENY_CHOICES);
-  if (choice !== "Allow") return { block: true, reason: `Blocked ${event.toolName}: denied by user` };
+  const decision = await requestPermissionOrFeedback(
+    ctx,
+    `Pi wants to run:\n$ ${command}`,
+    `Blocked ${event.toolName}`,
+  );
+  if (!decision.allow) return { block: true, reason: decision.reason };
 }
 
 export default function (pi: ExtensionAPI) {
