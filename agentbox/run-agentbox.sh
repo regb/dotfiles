@@ -109,7 +109,7 @@ mkdir -p \
 # Pi dotfiles: only specific files are shared. Sessions stay in the
 # volume — sharing them with host pi causes lock-file deadlocks.
 PI_MOUNTS=()
-for item in auth.json keybindings.json settings.json extensions prompts; do
+for item in auth.json keybindings.json settings.json extensions prompts skills; do
   src="${HOME}/.pi/agent/${item}"
   [[ -e "${src}" ]] || continue
   target="$(realpath "${src}" 2>/dev/null)" || continue
