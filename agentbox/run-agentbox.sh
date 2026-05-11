@@ -23,8 +23,7 @@ Create mode:
   --name NAME           Container name. Also used for the home volume
                         ("NAME-home") and the in-container workspace
                         path (/workspace/NAME).
-  --image IMAGE         Image tag to run (e.g. localhost/agentbox-base:latest
-                        or localhost/myproj-agentbox:latest).
+  --image IMAGE         Image tag to run (default: agentbox:latest).
   --port HOST:CONTAINER Publish a container port to the host. Same
                         syntax as `podman run -p`. Repeatable. Note:
                         ports are baked in at create time; adding more
@@ -65,7 +64,7 @@ done
 
 # --- attach mode ---------------------------------------------------------
 if [[ -n "${ATTACH}" ]]; then
-  if [[ -n "${NAME}" || -n "${IMAGE}" || ${#PORTS[@]} -gt 0 || ${#MOUNTS[@]} -gt 0 ]]; then
+  if [[ -n "${NAME}" || ${#PORTS[@]} -gt 0 || ${#MOUNTS[@]} -gt 0 ]]; then
     echo "--attach is mutually exclusive with create-mode flags (--name/--image/--port/--mount)" >&2
     exit 1
   fi
@@ -85,11 +84,13 @@ if [[ -n "${ATTACH}" ]]; then
 fi
 
 # --- create mode ---------------------------------------------------------
-if [[ -z "${NAME}" || -z "${IMAGE}" ]]; then
-  echo "--name and --image are required (or use --attach NAME)" >&2
+if [[ -z "${NAME}" ]]; then
+  echo "--name is required (or use --attach NAME)" >&2
   usage >&2
   exit 1
 fi
+
+IMAGE="${IMAGE:-agentbox:latest}"
 
 if podman container exists "${NAME}"; then
   echo "container '${NAME}' already exists; use --attach ${NAME} to connect, or 'podman rm -f ${NAME}' to recreate" >&2
@@ -157,6 +158,22 @@ _add_mount "${HOME}/.gitconfig" "/home/dev/.gitconfig" ro
 # key exposure in the container
 # _add_mount "${HOME}/.ssh"     "/home/dev/.ssh"       ro
 
+X11_ENV_ARGS=()
+X11_MOUNTS=()
+if [[ -n "${DISPLAY:-}" && -d /tmp/.X11-unix ]]; then
+  X11_ENV_ARGS+=(-e "DISPLAY=${DISPLAY}")
+  X11_MOUNTS+=(-v "/tmp/.X11-unix:/tmp/.X11-unix:rw")
+
+  if [[ -f "${HOME}/.Xauthority" ]]; then
+    X11_MOUNTS+=(-v "${HOME}/.Xauthority:/home/dev/.Xauthority:ro")
+    X11_ENV_ARGS+=(-e "XAUTHORITY=/home/dev/.Xauthority")
+  fi
+
+  if command -v xhost >/dev/null 2>&1; then
+    xhost +SI:localuser:"$(id -un)" >/dev/null 2>&1 || true
+  fi
+fi
+
 podman run -d \
   --name "${NAME}" \
   --init \
@@ -166,6 +183,7 @@ podman run -d \
   -e CLAUDE_CONFIG_DIR=/home/dev/.claude \
   -e TERM="${TERM}" \
   -e COLORTERM="${COLORTERM:-truecolor}" \
+  "${X11_ENV_ARGS[@]}" \
   -v "${REPO_DIR}:/workspace/${NAME}" \
   -v "${NAME}-home:/home/dev" \
   -v "${HOME}/.cache/agentbox-bazel-disk:/var/tmp/bazel-disk-cache" \
@@ -173,6 +191,7 @@ podman run -d \
   "${SECRET_ENVS[@]}" \
   "${PORT_ARGS[@]}" \
   "${EXTRA_MOUNT_ARGS[@]}" \
+  "${X11_MOUNTS[@]}" \
   "${PI_MOUNTS[@]}" \
   "${DOTFILE_MOUNTS[@]}" \
   "${IMAGE}" \

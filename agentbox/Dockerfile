@@ -11,7 +11,10 @@ RUN apt-get update \
         fd-find \
         fzf \
         git \
+        gh \
         gnupg \
+        iproute2 \
+        libicu74 \
         openjdk-21-jre-headless \
         python3 \
         python3-pip \
@@ -21,6 +24,12 @@ RUN apt-get update \
         unzip \
         vim \
         zip \
+        libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+        libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 \
+        libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 \
+        libpango-1.0-0 libcairo2 libatspi2.0-0 libgtk-3-0 \
+        libx11-6 libx11-xcb1 libxcb1 libxext6 libxshmfence1 libxss1 \
+        fonts-liberation xclip xsel wl-clipboard \
     && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/fdfind /usr/local/bin/fd
 
@@ -29,7 +38,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @earendil-works/pi-coding-agent
+RUN npm install -g @earendil-works/pi-coding-agent agent-browser \
+    && agent-browser install
+
+RUN corepack enable \
+    && corepack prepare pnpm@latest --activate \
+    && pnpm --version
 
 RUN mkdir -p /etc/bazel && printf '%s\n' \
     'build --disk_cache=/var/tmp/bazel-disk-cache' \
