@@ -53,7 +53,12 @@ export default function webfetchExtension(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "fetch",
 		label: "Web Fetch",
-		description: "Fetch a URL using curl and return response body as markdown text",
+		description: "Fetch a URL and return response body as markdown text",
+		promptSnippet: "Fetch and convert web pages to markdown",
+		promptGuidelines: [
+			"Use fetch when the user asks to read or summarize a web page from a URL",
+			"Prefer fetch for static content extraction and in case it's not enough fallback on `agent-browser` cli through the bash tool",
+		],
 		parameters: Type.Object({
 			url: Type.String({ description: "http(s) URL to fetch" }),
 			includeScriptsStyles: Type.Optional(

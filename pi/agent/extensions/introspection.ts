@@ -1,4 +1,6 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { wrapTextWithAnsi } from "@mariozechner/pi-tui";
+import { applySystemPromptTransforms, getSystemPromptTransformNames } from "./system-prompt-transform";
 
 const WIDGET_ID = "introspection";
 
@@ -19,12 +21,14 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("system-prompt", {
     description: "Show the current effective system prompt in a temporary widget",
     handler: async (_args, ctx) => {
-      const prompt = ctx.getSystemPrompt();
+      const basePrompt = ctx.getSystemPrompt();
+      const prompt = applySystemPromptTransforms(basePrompt);
       const chars = prompt.length;
       const tokens = estimateTokensFromChars(prompt);
+      const transforms = getSystemPromptTransformNames();
 
       ctx.ui.setWidget(WIDGET_ID, [
-        `System prompt metadata: chars=${chars}, est_tokens=${tokens}`,
+        `System prompt metadata: chars=${chars}, est_tokens=${tokens}, transforms=${transforms.length ? transforms.join(",") : "none"}`,
         "",
         prompt,
       ]);
@@ -33,24 +37,33 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("tools", {
-    description: "Show active tools in a temporary widget",
+    description: "Show active and inactive tools in a temporary widget",
     handler: async (_args, ctx) => {
       const activeNames = new Set(pi.getActiveTools());
-      const activeTools = pi.getAllTools().filter((tool) => activeNames.has(tool.name));
+      const allTools = pi.getAllTools();
+      const activeTools = allTools.filter((tool) => activeNames.has(tool.name));
+      const inactiveTools = allTools.filter((tool) => !activeNames.has(tool.name));
 
-      const dim = "\u001b[2m";
-      const cyan = "\u001b[36m";
-      const green = "\u001b[32m";
-      const reset = "\u001b[0m";
+      ctx.ui.setWidget(WIDGET_ID, (_tui, theme) => {
+        const lines = [
+          `${theme.fg("accent", "Active tools")} ${theme.fg("dim", `(${activeTools.length})`)}`,
+          "",
+          ...activeTools.map((tool) => `${theme.fg("success", "•")} ${theme.fg("accent", `\`${tool.name}\``)}${tool.description ? ` ${theme.fg("dim", `— ${tool.description}`)}` : ""}`),
+          "",
+          `${theme.fg("muted", "Inactive tools")} ${theme.fg("muted", `(${inactiveTools.length})`)}`,
+          "",
+          ...inactiveTools.map((tool) => `${theme.fg("muted", `• \`${tool.name}\`${tool.description ? ` — ${tool.description}` : ""}`)}`),
+        ];
 
-      const lines = [
-        `${cyan}Active tools${reset} ${dim}(${activeTools.length})${reset}`,
-        "",
-        ...activeTools.map((tool) => `${green}•${reset} ${cyan}\`${tool.name}\`${reset}${tool.description ? ` ${dim}— ${tool.description}${reset}` : ""}`),
-      ];
-
-      ctx.ui.setWidget(WIDGET_ID, lines);
-      ctx.ui.notify("Active tools shown (clears on next input)", "info");
+        return {
+          render: (width: number) => {
+            const safeWidth = Math.max(1, width);
+            return lines.flatMap((line) => (line ? wrapTextWithAnsi(line, safeWidth) : [""]));
+          },
+          invalidate: () => {},
+        };
+      });
+      ctx.ui.notify("Tools shown (clears on next input)", "info");
     },
   });
 

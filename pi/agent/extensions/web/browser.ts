@@ -27,6 +27,7 @@ export default function browserExtension(pi: ExtensionAPI) {
 		name: "browser_start",
 		label: "Start Chrome",
 		description: "Start Chrome with remote debugging on :9222",
+		promptSnippet: "Launch a controllable browser session for interactive web tasks",
 		parameters: Type.Object({
 			width: Type.Optional(Type.Number({ description: "Viewport width in px (e.g. 1920)" })),
 			height: Type.Optional(Type.Number({ description: "Viewport height in px (e.g. 1080)" })),
@@ -53,6 +54,7 @@ export default function browserExtension(pi: ExtensionAPI) {
 		name: "browser_navigate",
 		label: "Navigate",
 		description: "Navigate current tab",
+		promptSnippet: "Navigate the active browser tab to a specified URL",
 		parameters: Type.Object({
 			url: Type.String({ description: "URL to open" }),
 		}),
@@ -69,6 +71,7 @@ export default function browserExtension(pi: ExtensionAPI) {
 		name: "browser_eval",
 		label: "Evaluate JavaScript",
 		description: "Execute JavaScript in the active tab",
+		promptSnippet: "Run JavaScript in the active browser page and return results",
 		parameters: Type.Object({
 			script: Type.String({ description: "JavaScript expression/code" }),
 		}),
@@ -85,6 +88,7 @@ export default function browserExtension(pi: ExtensionAPI) {
 		name: "browser_screenshot",
 		label: "Screenshot",
 		description: "Capture a screenshot of the current viewport",
+		promptSnippet: "Capture a screenshot of the active browser viewport to a file",
 		parameters: Type.Object({
 			path: Type.String({ description: "Output file path (e.g. /tmp/shot.png)" }),
 		}),
@@ -105,6 +109,7 @@ export default function browserExtension(pi: ExtensionAPI) {
 		name: "browser_stop",
 		label: "Stop Chrome",
 		description: "Stop Chrome started on :9222",
+		promptSnippet: "Stop the active controllable browser session",
 		parameters: Type.Object({}),
 		renderCall(_args, theme) {
 			return new Text(theme.fg("toolTitle", theme.bold("browser_stop")), 0, 0);

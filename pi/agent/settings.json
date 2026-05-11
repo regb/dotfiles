@@ -5,11 +5,26 @@
   "defaultThinkingLevel": "medium",
   "hideThinkingBlock": true,
   "extensions": [
-    "-extensions/safe.ts"
+    "-extensions/safe.ts",
+    "-extensions/strip-pi-doc.ts",
+    "-extensions/research-report-guard.ts",
+    "-extensions/web",
+    "!extensions/web/**"
   ],
   "compaction": {
     "enabled": true,
     "reserveTokens": 16384,
     "keepRecentTokens": 20000
-  }
+  },
+  "skills": [
+    "-skills/agent-browser",
+    "!skills/agent-browser/**"
+  ],
+  "packages": [
+    {
+      "source": "npm:pi-web-access@0.10.7",
+      "extensions": [],
+      "skills": []
+    }
+  ]
 }
