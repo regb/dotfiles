@@ -10,7 +10,10 @@ dev.env
 qa.env
 staging.env
 prod.env
-
-.envrc
+.envrc.local
 
 .regb.opencode
+
+.cache
+
+/.agentbox

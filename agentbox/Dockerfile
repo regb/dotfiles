@@ -8,17 +8,16 @@ RUN apt-get update \
         build-essential \
         ca-certificates \
         curl \
+        direnv \
         fd-find \
+        file \
         fzf \
         git \
         gh \
         gnupg \
         iproute2 \
+        jq \
         libicu74 \
-        openjdk-21-jre-headless \
-        python3 \
-        python3-pip \
-        python-is-python3 \
         ripgrep \
         tmux \
         unzip \
@@ -41,9 +40,25 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 RUN npm install -g @earendil-works/pi-coding-agent agent-browser \
     && agent-browser install
 
-RUN corepack enable \
-    && corepack prepare pnpm@latest --activate \
-    && pnpm --version
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && install -m 0755 /root/.local/bin/uv /usr/local/bin/uv \
+    && install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx \
+    && uv --version
+
+# Homebrew + glab (officially supported installation path for glab)
+RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+    && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" \
+    && brew install glab \
+    && glab --version
+
+RUN curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public \
+      | gpg --dearmor -o /usr/share/keyrings/stripe.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" \
+      > /etc/apt/sources.list.d/stripe.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends stripe \
+    && rm -rf /var/lib/apt/lists/* \
+    && stripe version
 
 RUN mkdir -p /etc/bazel && printf '%s\n' \
     'build --disk_cache=/var/tmp/bazel-disk-cache' \
@@ -66,19 +81,21 @@ RUN useradd -m -s /bin/bash dev \
         /home/dev/.config \
         /home/dev/.pi/agent \
         /home/dev/.ssh \
-    && chown -R dev:dev /home/dev /usr/lib/node_modules /usr/bin
+    && chown -R dev:dev /home/dev /usr/lib/node_modules /usr/bin /home/linuxbrew/.linuxbrew
 
 RUN printf '%s\n' \
     'alias ls="ls --color=auto"' \
     'alias grep="grep --color=auto"' \
     'export PS1="\[\e[32m\]\u@\h\[\e[0m\]:\[\e[34m\]\w\[\e[0m\]\$ "' \
+    'eval "$(direnv hook bash)"' \
     >> /etc/bash.bashrc
 
 ENV USER=dev \
-    PATH=/usr/local/bin:/usr/bin:/bin \
+    PATH=/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/usr/local/bin:/usr/bin:/bin \
     EDITOR=vim \
     VISUAL=vim \
-    DEVCONTAINER=true
+    DEVCONTAINER=true \
+    AGENTBOX=true
 
 WORKDIR /workspace
 

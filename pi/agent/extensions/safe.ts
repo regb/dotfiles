@@ -26,9 +26,11 @@ async function requestPermissionOrFeedback(
           "Assess the feedback and do one of the following: (1) answer the feedback directly if no tool is needed, or (2) immediately rerun an adapted tool call that satisfies the feedback, unless impossible or unsafe.",
       };
     }
+    if (typeof ctx.abort === "function") ctx.abort();
     return { allow: false, reason: `${deniedReasonPrefix}: denied by user (no feedback provided)` };
   }
 
+  if (typeof ctx.abort === "function") ctx.abort();
   return { allow: false, reason: `${deniedReasonPrefix}: denied by user` };
 }
 
@@ -122,7 +124,28 @@ async function handleBashTool(event: { toolName: string; input: unknown }, ctx: 
 }
 
 export default function (pi: ExtensionAPI) {
+  const isAgentbox = String(process.env.AGENTBOX ?? "").toLowerCase() === "true";
+  let safeModeEnabled = !isAgentbox;
+
+  pi.registerCommand("safe", {
+    description: "Enable safe mode (approval gates)",
+    handler: async (_args, ctx) => {
+      safeModeEnabled = true;
+      ctx.ui.notify("Safe mode enabled", "success");
+    },
+  });
+
+  pi.registerCommand("unsafe", {
+    description: "Disable safe mode (no approval gates)",
+    handler: async (_args, ctx) => {
+      safeModeEnabled = false;
+      ctx.ui.notify("Safe mode disabled", "warning");
+    },
+  });
+
   pi.on("tool_call", async (event, ctx) => {
+    if (!safeModeEnabled) return;
+
     switch (event.toolName) {
       case "read":
         return handleReadTool(event as any, ctx);
