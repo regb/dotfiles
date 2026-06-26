@@ -45,6 +45,14 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && install -m 0755 /root/.local/bin/uvx /usr/local/bin/uvx \
     && uv --version
 
+ARG GRPCURL_VERSION=1.9.3
+RUN curl -fsSLo /tmp/grpcurl.tar.gz \
+      "https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz" \
+    && tar --no-same-owner -xzf /tmp/grpcurl.tar.gz -C /usr/local/bin grpcurl \
+    && rm -f /tmp/grpcurl.tar.gz \
+    && chmod 0755 /usr/local/bin/grpcurl \
+    && grpcurl --version
+
 # Homebrew + glab (officially supported installation path for glab)
 RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
     && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" \
@@ -61,13 +69,8 @@ RUN curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/publ
     && stripe version
 
 RUN mkdir -p /etc/bazel && printf '%s\n' \
-    'build --disk_cache=/var/tmp/bazel-disk-cache' \
-    'test --disk_cache=/var/tmp/bazel-disk-cache' \
-    'run --disk_cache=/var/tmp/bazel-disk-cache' \
-    'query --disk_cache=/var/tmp/bazel-disk-cache' \
-    'aquery --disk_cache=/var/tmp/bazel-disk-cache' \
-    'cquery --disk_cache=/var/tmp/bazel-disk-cache' \
-    'coverage --disk_cache=/var/tmp/bazel-disk-cache' \
+    'common --disk_cache=/var/tmp/bazel-disk-cache' \
+    'common --repository_cache=/var/tmp/bazel-repository-cache' \
     > /etc/bazel.bazelrc
 
 RUN curl -fsSL -o /usr/local/bin/bazel \

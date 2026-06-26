@@ -17,6 +17,7 @@ Options for create:
   --aws-dir PATH         Mount AWS config/credentials dir to /home/dev/.aws (ro)
   --gcloud-key PATH      Mount gcloud service-account key to /tmp/gcloud-key.json (ro)
   --host-network         Use host network
+  --network NAME         Attach to a Podman network
   --mount SRC:DST[:OPT]  Extra mount (repeatable)
   --port HOST:CONT       Port mapping (repeatable)
 EOF
@@ -36,7 +37,9 @@ case "${cmd}" in
           args+=(--mount "$2:/home/dev/.aws:ro,z"); shift 2 ;;
         --gcloud-key)
           args+=(--mount "$2:/tmp/gcloud-key.json:ro,z"); shift 2 ;;
-        --host-network|--mount|--port|--image|--name)
+        --host-network)
+          args+=("$1"); shift ;;
+        --network|--mount|--port|--image|--name)
           args+=("$1" "$2"); shift 2 ;;
         -h|--help)
           usage; exit 0 ;;

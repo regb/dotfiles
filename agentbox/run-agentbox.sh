@@ -19,7 +19,8 @@ Create options:
   --name NAME            Container name (also volume: NAME-home)
   --image IMAGE          Image tag to run (default: agentbox:latest)
   --port HOST:CONTAINER  Publish a port (-p). Repeatable.
-  --host-network         Use host network (--network host). Mutually exclusive with --port.
+  --host-network         Use host network (--network host). Mutually exclusive with --port/--network.
+  --network NAME         Attach to a Podman network. Mutually exclusive with --host-network.
   --mount SRC:DST[:OPT]  Extra bind mount (-v). Repeatable.
 
 Attach/remove options:
@@ -59,6 +60,7 @@ create_cmd() {
   local name=""
   local image="agentbox:latest"
   local host_network=0
+  local network=""
   local repo_dir=""
   local -a ports=()
   local -a mounts=()
@@ -69,6 +71,7 @@ create_cmd() {
       --image) image="$2"; shift 2 ;;
       --port) ports+=("$2"); shift 2 ;;
       --host-network) host_network=1; shift ;;
+      --network) network="$2"; shift 2 ;;
       --mount) mounts+=("$2"); shift 2 ;;
       -h|--help) usage; exit 0 ;;
       --) shift; break ;;
@@ -79,6 +82,7 @@ create_cmd() {
 
   [[ -n "${name}" ]] || { echo "--name is required" >&2; usage >&2; exit 1; }
   [[ ${host_network} -eq 1 && ${#ports[@]} -gt 0 ]] && { echo "--host-network cannot be used with --port" >&2; exit 1; }
+  [[ ${host_network} -eq 1 && -n "${network}" ]] && { echo "--host-network cannot be used with --network" >&2; exit 1; }
 
   if podman container exists "${name}"; then
     echo "container '${name}' already exists; use: $(basename "$0") attach --name ${name}" >&2
@@ -86,12 +90,14 @@ create_cmd() {
   fi
 
   repo_dir="$(realpath "${repo_dir:-$(pwd)}")"
-  local repo_parent repo_name sibling_worktrees
-  repo_parent="$(dirname "${repo_dir}")"
-  repo_name="$(basename "${repo_dir}")"
-  sibling_worktrees="${repo_parent}/${repo_name}-worktrees"
 
-  mkdir -p "${HOME}/.cache/agentbox-bazel-disk" "${HOME}/.cache/bazelisk" "${sibling_worktrees}"
+  local bazel_disk_cache="${AGENTBOX_BAZEL_DISK_CACHE:-${HOME}/.cache/bazel/disk-cache}"
+  local bazel_repository_cache="${AGENTBOX_BAZEL_REPOSITORY_CACHE:-}"
+  if [[ -z "${bazel_repository_cache}" ]] && command -v bazel >/dev/null 2>&1; then
+    bazel_repository_cache="$(cd "${repo_dir}" && timeout 10s bazel info repository_cache 2>/dev/null || true)"
+  fi
+  bazel_repository_cache="${bazel_repository_cache:-${HOME}/.cache/bazel/repository-cache}"
+  mkdir -p "${bazel_disk_cache}" "${bazel_repository_cache}" "${HOME}/.cache/bazelisk"
 
   local -a pi_mounts=()
   if [[ -d "${HOME}/.pi" ]]; then
@@ -113,7 +119,11 @@ create_cmd() {
   for p in "${ports[@]}"; do port_args+=(-p "${p}"); done
 
   local -a network_args=()
-  [[ ${host_network} -eq 1 ]] && network_args+=(--network host)
+  if [[ ${host_network} -eq 1 ]]; then
+    network_args+=(--network host)
+  elif [[ -n "${network}" ]]; then
+    network_args+=(--network "${network}")
+  fi
 
   local -a extra_mount_args=()
   for m in "${mounts[@]}"; do extra_mount_args+=(-v "${m}"); done
@@ -129,6 +139,7 @@ create_cmd() {
   }
   _add_mount "${HOME}/.tmux.conf" "/home/dev/.tmux.conf" rw
   _add_mount "${HOME}/.gitconfig" "/home/dev/.gitconfig" ro
+  _add_mount "${HOME}/.agentbox/tools/bin" "/home/dev/.agentbox/tools/bin" ro,z
 
   local -a x11_env_args=()
   local -a x11_mounts=()
@@ -158,11 +169,12 @@ create_cmd() {
     -e AGENTBOX_REPO_DIR="${repo_dir}" \
     -e TERM="${TERM}" \
     -e COLORTERM="${COLORTERM:-truecolor}" \
+    -e PATH="/home/dev/.agentbox/tools/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/usr/local/bin:/usr/bin:/bin" \
     "${x11_env_args[@]}" \
     -v "${repo_dir}:${repo_dir}" \
-    -v "${sibling_worktrees}:${sibling_worktrees}" \
     -v "${name}-home:/home/dev" \
-    -v "${HOME}/.cache/agentbox-bazel-disk:/var/tmp/bazel-disk-cache" \
+    -v "${bazel_disk_cache}:/var/tmp/bazel-disk-cache" \
+    -v "${bazel_repository_cache}:/var/tmp/bazel-repository-cache" \
     -v "${HOME}/.cache/bazelisk:/home/dev/.cache/bazelisk" \
     "${secret_envs[@]}" \
     "${port_args[@]}" \
