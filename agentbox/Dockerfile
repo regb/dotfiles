@@ -10,6 +10,7 @@ RUN apt-get update \
         curl \
         direnv \
         fd-find \
+        ffmpeg \
         file \
         fzf \
         git \
